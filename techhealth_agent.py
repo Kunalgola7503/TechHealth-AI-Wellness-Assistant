@@ -1,1 +1,297 @@
-"""\nTechHealth: AI-Powered Wellness Assistant\nMulti-Agent Healthcare Solution for Kaggle AI Agents Capstone Project\n\nThis implementation demonstrates concepts from the 5-Day AI Agents Intensive Course:\n- Day 1: Agent architecture and prompt-to-action\n- Day 2: Tools integration and MCP\n- Day 3: Sessions and memory management\n- Day 4: Observability and evaluation\n- Day 5: A2A protocol and deployment\n\nAuthor: Kunal Gola\nDate: November 30, 2025\nTrack: Agents for Good (Healthcare)\n"""\n\nimport os\nimport json\nimport logging\nfrom datetime import datetime\nfrom typing import Dict, List, Any\nimport google.generativeai as genai\n\n# Configure logging for observability (Day 4)\nlogging.basicConfig(\n    level=logging.INFO,\n    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'\n)\nlogger = logging.getLogger(__name__)\n\n# Configure Gemini API\nAPI_KEY = os.getenv('GEMINI_API_KEY', 'YOUR_API_KEY_HERE')\ngenai.configure(api_key=API_KEY)\n\nclass HealthMonitoringAgent:\n    \"\"\"Agent 1: Monitors user health metrics and detects anomalies\"\"\"\n    \n    def __init__(self):\n        self.name = \"HealthMonitor\"\n        self.model = genai.GenerativeModel('gemini-pro')\n        logger.info(f\"{self.name} initialized\")\n    \n    def analyze_health_data(self, user_data: Dict[str, Any]) -> Dict[str, Any]:\n        \"\"\"Analyze health metrics and detect potential issues\"\"\"\n        logger.info(f\"{self.name}: Analyzing health data\")\n        \n        prompt = f\"\"\"\n        As a health monitoring AI, analyze the following health metrics:\n        \n        Heart Rate: {user_data.get('heart_rate', 'N/A')} bpm\n        Blood Pressure: {user_data.get('blood_pressure', 'N/A')}\n        Sleep Hours: {user_data.get('sleep_hours', 'N/A')}\n        Activity Level: {user_data.get('activity_level', 'N/A')}\n        \n        Provide:\n        1. Risk level (Low/Medium/High)\n        2. Key concerns if any\n        3. Suggested monitoring frequency\n        \n        Respond in JSON format.\n        \"\"\"\n        \n        try:\n            response = self.model.generate_content(prompt)\n            result = {\n                'agent': self.name,\n                'timestamp': datetime.now().isoformat(),\n                'analysis': response.text,\n                'status': 'success'\n            }\n            logger.info(f\"{self.name}: Analysis complete\")\n            return result\n        except Exception as e:\n            logger.error(f\"{self.name}: Error - {str(e)}\")\n            return {'agent': self.name, 'status': 'error', 'error': str(e)}\n\nclass RecommendationAgent:\n    \"\"\"Agent 2: Provides personalized wellness recommendations\"\"\"\n    \n    def __init__(self):\n        self.name = \"RecommendationEngine\"\n        self.model = genai.GenerativeModel('gemini-pro')\n        logger.info(f\"{self.name} initialized\")\n    \n    def generate_recommendations(self, user_profile: Dict[str, Any], health_analysis: Dict[str, Any]) -> Dict[str, Any]:\n        \"\"\"Generate personalized health recommendations\"\"\"\n        logger.info(f\"{self.name}: Generating recommendations\")\n        \n        prompt = f\"\"\"\n        Based on the user profile and health analysis, provide personalized recommendations:\n        \n        User Profile:\n        - Age: {user_profile.get('age', 'N/A')}\n        - Fitness Goal: {user_profile.get('fitness_goal', 'N/A')}\n        - Dietary Preferences: {user_profile.get('dietary_preferences', 'N/A')}\n        \n        Health Analysis:\n        {health_analysis.get('analysis', 'No analysis available')}\n        \n        Provide:\n        1. 3 actionable nutrition tips\n        2. 3 exercise recommendations\n        3. 2 lifestyle adjustments\n        \n        Make recommendations specific and achievable.\n        \"\"\"\n        \n        try:\n            response = self.model.generate_content(prompt)\n            result = {\n                'agent': self.name,\n                'timestamp': datetime.now().isoformat(),\n                'recommendations': response.text,\n                'status': 'success'\n            }\n            logger.info(f\"{self.name}: Recommendations generated\")\n            return result\n        except Exception as e:\n            logger.error(f\"{self.name}: Error - {str(e)}\")\n            return {'agent': self.name, 'status': 'error', 'error': str(e)}\n\nclass MedicalKnowledgeAgent:\n    \"\"\"Agent 3: Answers medical questions using Gemini's knowledge\"\"\"\n    \n    def __init__(self):\n        self.name = \"MedicalQA\"\n        self.model = genai.GenerativeModel('gemini-pro')\n        logger.info(f\"{self.name} initialized\")\n    \n    def answer_question(self, question: str) -> Dict[str, Any]:\n        \"\"\"Answer health-related questions\"\"\"\n        logger.info(f\"{self.name}: Processing question\")\n        \n        prompt = f\"\"\"\n        As a medical information assistant, answer this health question accurately:\n        \n        Question: {question}\n        \n        Provide:\n        1. Clear, evidence-based answer\n        2. Important disclaimers\n        3. When to consult a healthcare professional\n        \n        Note: Always emphasize this is informational and not a substitute for professional medical advice.\n        \"\"\"\n        \n        try:\n            response = self.model.generate_content(prompt)\n            result = {\n                'agent': self.name,\n                'timestamp': datetime.now().isoformat(),\n                'question': question,\n                'answer': response.text,\n                'status': 'success'\n            }\n            logger.info(f\"{self.name}: Question answered\")\n            return result\n        except Exception as e:\n            logger.error(f\"{self.name}: Error - {str(e)}\")\n            return {'agent': self.name, 'status': 'error', 'error': str(e)}\n\nclass CoordinationAgent:\n    \"\"\"Agent 4: Orchestrates multi-agent communication (A2A Protocol)\"\"\"\n    \n    def __init__(self):\n        self.name = \"Coordinator\"\n        self.health_monitor = HealthMonitoringAgent()\n        self.recommender = RecommendationAgent()\n        self.medical_qa = MedicalKnowledgeAgent()\n        self.session_memory = {}  # Day 3: Session management\n        logger.info(f\"{self.name} initialized with all sub-agents\")\n    \n    def create_session(self, user_id: str) -> str:\n        \"\"\"Create a new user session with memory\"\"\"\n        session_id = f\"session_{user_id}_{datetime.now().timestamp()}\"\n        self.session_memory[session_id] = {\n            'user_id': user_id,\n            'created_at': datetime.now().isoformat(),\n            'interactions': []\n        }\n        logger.info(f\"{self.name}: Session {session_id} created\")\n        return session_id\n    \n    def process_health_check(self, session_id: str, user_data: Dict[str, Any], user_profile: Dict[str, Any]) -> Dict[str, Any]:\n        \"\"\"Coordinate complete health check workflow\"\"\"\n        logger.info(f\"{self.name}: Starting health check workflow\")\n        \n        workflow_result = {\n            'session_id': session_id,\n            'workflow': 'health_check',\n            'timestamp': datetime.now().isoformat(),\n            'steps': []\n        }\n        \n        # Step 1: Health monitoring\n        health_analysis = self.health_monitor.analyze_health_data(user_data)\n        workflow_result['steps'].append(health_analysis)\n        \n        # Step 2: Generate recommendations based on analysis\n        if health_analysis['status'] == 'success':\n            recommendations = self.recommender.generate_recommendations(user_profile, health_analysis)\n            workflow_result['steps'].append(recommendations)\n        \n        # Store in session memory\n        if session_id in self.session_memory:\n            self.session_memory[session_id]['interactions'].append(workflow_result)\n        \n        logger.info(f\"{self.name}: Health check workflow complete\")\n        return workflow_result\n    \n    def handle_question(self, session_id: str, question: str) -> Dict[str, Any]:\n        \"\"\"Handle medical Q&A through dedicated agent\"\"\"\n        logger.info(f\"{self.name}: Routing question to Medical QA agent\")\n        \n        result = self.medical_qa.answer_question(question)\n        \n        # Store in session memory\n        if session_id in self.session_memory:\n            self.session_memory[session_id]['interactions'].append(result)\n        \n        return result\n    \n    def get_session_summary(self, session_id: str) -> Dict[str, Any]:\n        \"\"\"Retrieve session history (Day 3: Memory)\"\"\"\n        if session_id in self.session_memory:\n            return self.session_memory[session_id]\n        return {'error': 'Session not found'}\n\n# Main TechHealth System\nclass TechHealthSystem:\n    \"\"\"Main system orchestrating all agents\"\"\"\n    \n    def __init__(self):\n        self.coordinator = CoordinationAgent()\n        logger.info(\"TechHealth System initialized\")\n    \n    def start_wellness_session(self, user_id: str, user_profile: Dict[str, Any]) -> str:\n        \"\"\"Start a new wellness consultation session\"\"\"\n        session_id = self.coordinator.create_session(user_id)\n        logger.info(f\"Wellness session started for user {user_id}\")\n        return session_id\n    \n    def perform_health_check(self, session_id: str, health_data: Dict[str, Any], user_profile: Dict[str, Any]) -> Dict[str, Any]:\n        \"\"\"Perform comprehensive health assessment\"\"\"\n        return self.coordinator.process_health_check(session_id, health_data, user_profile)\n    \n    def ask_medical_question(self, session_id: str, question: str) -> Dict[str, Any]:\n        \"\"\"Get answer to medical question\"\"\"\n        return self.coordinator.handle_question(session_id, question)\n    \n    def get_session_history(self, session_id: str) -> Dict[str, Any]:\n        \"\"\"Retrieve complete session history\"\"\"\n        return self.coordinator.get_session_summary(session_id)\n\n# Example Usage\nif __name__ == \"__main__\":\n    print(\"=== TechHealth AI Wellness Assistant ===")\n    print(\"Multi-Agent Healthcare Solution Demo\\n\")\n    \n    # Initialize system\n    system = TechHealthSystem()\n    \n    # User profile\n    user_profile = {\n        'age': 28,\n        'fitness_goal': 'Weight loss and cardiovascular health',\n        'dietary_preferences': 'Vegetarian'\n    }\n    \n    # Start session\n    session_id = system.start_wellness_session(\"user_123\", user_profile)\n    print(f\"Session ID: {session_id}\\n\")\n    \n    # Health data\n    health_data = {\n        'heart_rate': 82,\n        'blood_pressure': '130/85',\n        'sleep_hours': 6,\n        'activity_level': 'Moderate'\n    }\n    \n    # Perform health check\n    print(\"Performing health assessment...\")\n    health_check = system.perform_health_check(session_id, health_data, user_profile)\n    print(json.dumps(health_check, indent=2))\n    \n    # Ask a medical question\n    print(\"\\nAsking medical question...\")\n    question = \"What are the benefits of regular cardiovascular exercise?\"\n    qa_response = system.ask_medical_question(session_id, question)\n    print(json.dumps(qa_response, indent=2))\n    \n    # Get session summary\n    print(\"\\nRetrieving session history...\")\n    history = system.get_session_history(session_id)\n    print(f\"Total interactions: {len(history.get('interactions', []))}\")\n    \n    print(\"\\nDemo complete! TechHealth system successfully demonstrated multi-agent coordination.\")
+"""TechHealth: AI-Powered Wellness Assistant
+Multi-Agent Healthcare Solution for Kaggle AI Agents Capstone Project
+
+This implementation demonstrates concepts from the 5-Day AI Agents Intensive Course:
+- Day 1: Agent architecture and prompt-to-action
+- Day 2: Tools integration and MCP
+- Day 3: Sessions and memory management
+- Day 4: Observability and evaluation
+- Day 5: A2A protocol and deployment
+
+Author: Kunal Gola
+Date: November 30, 2025
+Track: Agents for Good (Healthcare)
+"""
+
+import os
+import json
+import logging
+from datetime import datetime
+from typing import Dict, List, Any
+import google.generativeai as genai
+
+# Configure logging for observability (Day 4)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Configure Gemini API
+API_KEY = os.getenv('GEMINI_API_KEY', 'YOUR_API_KEY_HERE')
+genai.configure(api_key=API_KEY)
+
+class HealthMonitoringAgent:
+    """Agent 1: Monitors user health metrics and detects anomalies"""
+    
+    def __init__(self):
+        self.name = "HealthMonitor"
+        self.model = genai.GenerativeModel('gemini-pro')
+        logger.info(f"{self.name} initialized")
+    
+    def analyze_health_data(self, user_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze health metrics and detect potential issues"""
+        logger.info(f"{self.name}: Analyzing health data")
+        
+        prompt = f"""
+        As a health monitoring AI, analyze the following health metrics:
+        
+        Heart Rate: {user_data.get('heart_rate', 'N/A')} bpm
+        Blood Pressure: {user_data.get('blood_pressure', 'N/A')}
+        Sleep Hours: {user_data.get('sleep_hours', 'N/A')}
+        Activity Level: {user_data.get('activity_level', 'N/A')}
+        
+        Provide:
+        1. Risk level (Low/Medium/High)
+        2. Key concerns if any
+        3. Suggested monitoring frequency
+        
+        Respond in JSON format.
+        """
+        
+        try:
+            response = self.model.generate_content(prompt)
+            result = {
+                'agent': self.name,
+                'timestamp': datetime.now().isoformat(),
+                'analysis': response.text,
+                'status': 'success'
+            }
+            logger.info(f"{self.name}: Analysis complete")
+            return result
+        except Exception as e:
+            logger.error(f"{self.name}: Error - {str(e)}")
+            return {'agent': self.name, 'status': 'error', 'error': str(e)}
+
+class RecommendationAgent:
+    """Agent 2: Provides personalized wellness recommendations"""
+    
+    def __init__(self):
+        self.name = "RecommendationEngine"
+        self.model = genai.GenerativeModel('gemini-pro')
+        logger.info(f"{self.name} initialized")
+    
+    def generate_recommendations(self, user_profile: Dict[str, Any], health_analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate personalized health recommendations"""
+        logger.info(f"{self.name}: Generating recommendations")
+        
+        prompt = f"""
+        Based on the user profile and health analysis, provide personalized recommendations:
+        
+        User Profile:
+        - Age: {user_profile.get('age', 'N/A')}
+        - Fitness Goal: {user_profile.get('fitness_goal', 'N/A')}
+        - Dietary Preferences: {user_profile.get('dietary_preferences', 'N/A')}
+        
+        Health Analysis:
+        {health_analysis.get('analysis', 'No analysis available')}
+        
+        Provide:
+        1. 3 actionable nutrition tips
+        2. 3 exercise recommendations
+        3. 2 lifestyle adjustments
+        
+        Make recommendations specific and achievable.
+        """
+        
+        try:
+            response = self.model.generate_content(prompt)
+            result = {
+                'agent': self.name,
+                'timestamp': datetime.now().isoformat(),
+                'recommendations': response.text,
+                'status': 'success'
+            }
+            logger.info(f"{self.name}: Recommendations generated")
+            return result
+        except Exception as e:
+            logger.error(f"{self.name}: Error - {str(e)}")
+            return {'agent': self.name, 'status': 'error', 'error': str(e)}
+
+class MedicalKnowledgeAgent:
+    """Agent 3: Answers medical questions using Gemini's knowledge"""
+    
+    def __init__(self):
+        self.name = "MedicalQA"
+        self.model = genai.GenerativeModel('gemini-pro')
+        logger.info(f"{self.name} initialized")
+    
+    def answer_question(self, question: str) -> Dict[str, Any]:
+        """Answer health-related questions"""
+        logger.info(f"{self.name}: Processing question")
+        
+        prompt = f"""
+        As a medical information assistant, answer this health question accurately:
+        
+        Question: {question}
+        
+        Provide:
+        1. Clear, evidence-based answer
+        2. Important disclaimers
+        3. When to consult a healthcare professional
+        
+        Note: Always emphasize this is informational and not a substitute for professional medical advice.
+        """
+        
+        try:
+            response = self.model.generate_content(prompt)
+            result = {
+                'agent': self.name,
+                'timestamp': datetime.now().isoformat(),
+                'question': question,
+                'answer': response.text,
+                'status': 'success'
+            }
+            logger.info(f"{self.name}: Question answered")
+            return result
+        except Exception as e:
+            logger.error(f"{self.name}: Error - {str(e)}")
+            return {'agent': self.name, 'status': 'error', 'error': str(e)}
+
+class CoordinationAgent:
+    """Agent 4: Orchestrates multi-agent communication (A2A Protocol)"""
+    
+    def __init__(self):
+        self.name = "Coordinator"
+        self.health_monitor = HealthMonitoringAgent()
+        self.recommender = RecommendationAgent()
+        self.medical_qa = MedicalKnowledgeAgent()
+        self.session_memory = {}  # Day 3: Session management
+        logger.info(f"{self.name} initialized with all sub-agents")
+    
+    def create_session(self, user_id: str) -> str:
+        """Create a new user session with memory"""
+        session_id = f"session_{user_id}_{datetime.now().timestamp()}"
+        self.session_memory[session_id] = {
+            'user_id': user_id,
+            'created_at': datetime.now().isoformat(),
+            'interactions': []
+        }
+        logger.info(f"{self.name}: Session {session_id} created")
+        return session_id
+    
+    def process_health_check(self, session_id: str, user_data: Dict[str, Any], user_profile: Dict[str, Any]) -> Dict[str, Any]:
+        """Coordinate complete health check workflow"""
+        logger.info(f"{self.name}: Starting health check workflow")
+        
+        workflow_result = {
+            'session_id': session_id,
+            'workflow': 'health_check',
+            'timestamp': datetime.now().isoformat(),
+            'steps': []
+        }
+        
+        # Step 1: Health monitoring
+        health_analysis = self.health_monitor.analyze_health_data(user_data)
+        workflow_result['steps'].append(health_analysis)
+        
+        # Step 2: Generate recommendations based on analysis
+        if health_analysis['status'] == 'success':
+            recommendations = self.recommender.generate_recommendations(user_profile, health_analysis)
+            workflow_result['steps'].append(recommendations)
+        
+        # Store in session memory
+        if session_id in self.session_memory:
+            self.session_memory[session_id]['interactions'].append(workflow_result)
+        
+        logger.info(f"{self.name}: Health check workflow complete")
+        return workflow_result
+    
+    def handle_question(self, session_id: str, question: str) -> Dict[str, Any]:
+        """Handle medical Q&A through dedicated agent"""
+        logger.info(f"{self.name}: Routing question to Medical QA agent")
+        
+        result = self.medical_qa.answer_question(question)
+        
+        # Store in session memory
+        if session_id in self.session_memory:
+            self.session_memory[session_id]['interactions'].append(result)
+        
+        return result
+    
+    def get_session_summary(self, session_id: str) -> Dict[str, Any]:
+        """Retrieve session history (Day 3: Memory)"""
+        if session_id in self.session_memory:
+            return self.session_memory[session_id]
+        return {'error': 'Session not found'}
+
+# Main TechHealth System
+class TechHealthSystem:
+    """Main system orchestrating all agents"""
+    
+    def __init__(self):
+        self.coordinator = CoordinationAgent()
+        logger.info("TechHealth System initialized")
+    
+    def start_wellness_session(self, user_id: str, user_profile: Dict[str, Any]) -> str:
+        """Start a new wellness consultation session"""
+        session_id = self.coordinator.create_session(user_id)
+        logger.info(f"Wellness session started for user {user_id}")
+        return session_id
+    
+    def perform_health_check(self, session_id: str, health_data: Dict[str, Any], user_profile: Dict[str, Any]) -> Dict[str, Any]:
+        """Perform comprehensive health assessment"""
+        return self.coordinator.process_health_check(session_id, health_data, user_profile)
+    
+    def ask_medical_question(self, session_id: str, question: str) -> Dict[str, Any]:
+        """Get answer to medical question"""
+        return self.coordinator.handle_question(session_id, question)
+    
+    def get_session_history(self, session_id: str) -> Dict[str, Any]:
+        """Retrieve complete session history"""
+        return self.coordinator.get_session_summary(session_id)
+
+# Example Usage
+if __name__ == "__main__":
+    print("=== TechHealth AI Wellness Assistant ===")
+    print("Multi-Agent Healthcare Solution Demo\n")
+    
+    # Initialize system
+    system = TechHealthSystem()
+    
+    # User profile
+    user_profile = {
+        'age': 28,
+        'fitness_goal': 'Weight loss and cardiovascular health',
+        'dietary_preferences': 'Vegetarian'
+    }
+    
+    # Start session
+    session_id = system.start_wellness_session("user_123", user_profile)
+    print(f"Session ID: {session_id}\n")
+    
+    # Health data
+    health_data = {
+        'heart_rate': 82,
+        'blood_pressure': '130/85',
+        'sleep_hours': 6,
+        'activity_level': 'Moderate'
+    }
+    
+    # Perform health check
+    print("Performing health assessment...")
+    health_check = system.perform_health_check(session_id, health_data, user_profile)
+    print(json.dumps(health_check, indent=2))
+    
+    # Ask a medical question
+    print("\nAsking medical question...")
+    question = "What are the benefits of regular cardiovascular exercise?"
+    qa_response = system.ask_medical_question(session_id, question)
+    print(json.dumps(qa_response, indent=2))
+    
+    # Get session summary
+    print("\nRetrieving session history...")
+    history = system.get_session_history(session_id)
+    print(f"Total interactions: {len(history.get('interactions', []))}")
+    
+    print("\nDemo complete! TechHealth system successfully demonstrated multi-agent coordination.")
